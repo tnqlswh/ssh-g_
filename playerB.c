@@ -146,7 +146,7 @@ int main()
 		random_card(cards, selected_cards);
 
 		write(fd[1], &dice, sizeof(dice));
-		write(fd[1], &selected_cards, sizeof(selected_cards)/sizeof(selected_cards[0]));
+		write(fd[1], &selected_cards, sizeof(selected_cards));
 		close(fd[1]);
 	}
 	else
@@ -156,14 +156,14 @@ int main()
 		Dice get_dice;
 
 		read(fd[0], &get_dice, sizeof(get_dice));
-		read(fd[0], &get_card, sizeof(get_card)/sizeof(get_card[0]));
+		read(fd[0], &get_card, sizeof(get_card));
 		close(fd[0]);
 
 		printf("흰 주사위: %d\n흑 주사위: %d\n", get_dice.white_dice, get_dice.black_dice);
 		printf("-사용 가능한 서포트 카드\n");
 		for(int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
 		{
-			printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i+1, cards[i].name, cards[i].black_cost, cards[i].white_cost);
+			printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i+1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
 		}
 	}
 
