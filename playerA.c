@@ -126,10 +126,6 @@ int main()
 	int round = 1; // 첫 라운드인지 확인용 변수
 	int act = 0; // 플레이어 행동 입력 받기용 변수 
 
-	// 부모 프로세스랑 자식 프로세스 분리해둔 거 안에 있어서 밖에서 사용이 안 되길래 빼왔음
-	SupportCard get_card[MAX_CARD];
-	Dice get_dice;
-
 	//서포트 카드 설정
 	SupportCard cards[] = {
 		create_card("shild", 0, 2, shield_effect),
@@ -175,6 +171,9 @@ int main()
 			else
 			{
 				close(fd[1]); 
+
+				SupportCard get_card[MAX_CARD];
+				Dice get_dice;
 				
 				read(fd[0], &get_dice, sizeof(get_dice));
 				read(fd[0], &get_card, sizeof(get_card));
@@ -186,44 +185,45 @@ int main()
 				{
 					printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
 				}
-			}
-		}
 
-		while (act != 3) {
+				while (act != 3) {
 
-			printf("1. 카드 선택\n2. 공격\n3. 턴 종료\ninput: ");
-			scanf("%d", &act);
+					printf("1. 카드 선택\n2. 공격\n3. 턴 종료\ninput: ");
+					scanf("%d", &act);
 
-			if (act == 1) {
+					if (act == 1) {
 
-				printf("-사용 가능한 서포트 카드\n");
-				
-				// 제대로 출력 안 되는 오류 있음. 이거 자식 프로세스임? 
-				for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
-				{
-					printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
+						printf("-사용 가능한 서포트 카드\n");
+
+						for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
+						{
+							printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
+
+						}
+
+						printf("input: ");
+						scanf("%d", &act);
+
+						if (get_dice.white_dice < get_card[act - 1].white_cost || get_dice.black_dice < get_card[act - 1].black_cost)
+							printf("주사위가 부족합니다.\n");
+
+						act = 0;
+
+					}
+
+					else if (act == 2) {
+
+						printf("상대를 때립니다. 아야~");
+
+						act = 3;
+
+					}
 
 				}
-
-				printf("input: ");
-				scanf("%d", &act);
-
-				if (get_dice.white_dice < get_card[act-1].white_cost || get_dice.black_dice < get_card[act-1].black_cost)
-					printf("주사위가 부족합니다.\n");
-
-				act = 0;
-
 			}
-
-			else if (act == 2) {
-
-				printf("상대를 때립니다. 아야~");
-
-				act = 3;
-
-			}
-
 		}
+
+		
 		
 		
 	}
