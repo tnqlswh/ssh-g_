@@ -24,7 +24,14 @@ typedef struct
 	int tighnari_dmg;
 
 	int current_turn; //0은 사이노 1은 타이나리
+
 } GameState;
+
+typedef struct {
+
+	char act_string[MAX_CHAR];
+
+} GameAct;
 
 typedef struct
 {
@@ -98,7 +105,9 @@ void state_init(GameState* game_state)
 	game_state->tighnari_hp = 50;
 	game_state->tighnari_def = 0;
 	game_state->tighnari_dmg = 0;
+
 }
+
 
 void shield_effect(int *def, int *dmg)
 {
@@ -108,6 +117,10 @@ void shield_effect(int *def, int *dmg)
 void play_turn(GameState *game_state, int player_id)
 {
 
+}
+
+void change_turn(GameState* game_state) {
+	game_state->current_turn = 0;
 }
 
 int main()
@@ -129,8 +142,10 @@ int main()
 		perror("shmget");
 		exit(1);
 	}
+
 	game_state = (GameState *)shmat(shmid, NULL, 0);
-	state_init(game_state);
+
+	//state_init(game_state);
 
 	int fd[2];
 	pid_t cardDice;
@@ -167,5 +182,9 @@ int main()
 		}
 	}
 
+	
+	//printf("shmid : %d\n", shmid);
+	printf("%s\n", game_state->act_string);
+	
 	return 0;
 }
