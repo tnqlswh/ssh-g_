@@ -191,29 +191,28 @@ int main()
 		exit(1);
 	}
 	game_act = (GameAct*)shmat(shmid_act, NULL, 0);
-/*
+
 	act_init(game_act);
 
 	// pid 저장 
 	game_act->cy_pid = getpid();
 
-	signal(SIGUSR1, change_turn(game_state));
-	signal(SIGUSR2, pass_turn(game_act));
-
 	int fd[2];
 	pid_t cardDice;
 
 	pipe(fd);
-	cardDice = fork();
 
-	while (true)
+
+	while (1)
 	{
 		if (game_state->current_turn == 0) {
-
+			
+			// 새 라운드 시작 
 			if (game_act->round == 1) {
 
 				card_size = MAX_CARD;
-
+				cardDice = fork();
+				// 자식 프로세스 
 				if (cardDice == 0)
 				{
 					SupportCard selected_cards[MAX_CARD];
@@ -224,80 +223,82 @@ int main()
 					write(fd[1], &dice, sizeof(dice));
 					write(fd[1], &selected_cards, sizeof(selected_cards));
 					close(fd[1]);
+					exit(1);
 				}
-				else
-				{
-					close(fd[1]);
+			}
+			
+			// 부모 프로세스 
+			
+			close(fd[1]);
 
-					SupportCard get_card[MAX_CARD];
-					Dice get_dice;
+			SupportCard get_card[MAX_CARD];
+			Dice get_dice;
 
-					read(fd[0], &get_dice, sizeof(get_dice));
-					read(fd[0], &get_card, sizeof(get_card));
-					close(fd[0]);
+			read(fd[0], &get_dice, sizeof(get_dice));
+			read(fd[0], &get_card, sizeof(get_card));
+			close(fd[0]);
 
-					printf("흰 주사위: %d\n흑 주사위: %d\n", get_dice.white_dice, get_dice.black_dice);
+			printf("흰 주사위: %d\n흑 주사위: %d\n", get_dice.white_dice, get_dice.black_dice);
+			printf("-사용 가능한 서포트 카드\n");
+			for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
+			{
+				printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
+			}
+
+			while (1) {
+
+				printf("1. 카드 선택\n2. 공격\n3. 턴 종료\ninput: ");
+				scanf("%d", &act);
+
+				if (act == 1) {
+
 					printf("-사용 가능한 서포트 카드\n");
+
 					for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
 					{
 						printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
+
 					}
 
-					while (true) {
+					printf("input: ");
+					scanf("%d", &act);
 
-						printf("1. 카드 선택\n2. 공격\n3. 턴 종료\ninput: ");
-						scanf("%d", &act);
+					if (get_dice.white_dice < get_card[act - 1].white_cost || get_dice.black_dice < get_card[act - 1].black_cost)
+						printf("주사위가 부족합니다.\n");
 
-						if (act == 1) {
-
-							printf("-사용 가능한 서포트 카드\n");
-
-							for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
-							{
-								printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
-
-							}
-
-							printf("input: ");
-							scanf("%d", &act);
-
-							if (get_dice.white_dice < get_card[act - 1].white_cost || get_dice.black_dice < get_card[act - 1].black_cost)
-								printf("주사위가 부족합니다.\n");
-
-							else {
-								// 이거 되는지 잘 모르겠음 
-								strcpy(act_string, "playerA used %s\n", get_card[act - 1].name);
-								strcpy(game_act.act_string, act_string);
+					else {
+						// 이거 되는지 잘 모르겠음 
+						strcpy(act_string, "playerA used ");
+						strcat(act_string, get_card[act - 1].name);
+						strcat(act_string, "\n");
+						strcat(game_act->act_string, act_string);
 								// 카드 효과 적용, 카드 삭제 써야 함 
-							}
-
-						}
-
-						else if (act == 2) {
-
-							printf("상대를 때립니다. 아야~");
-							strcpy(act_string, "playerA attacked playerB\n");
-							act = 3;
-							kill(game_act->tn_pid, SIGUSR1);
-
-						}
-
-						else if (act == 3) {
-
-							// 다 하고 선택한 건지 아니면 그냥 냅다 패스한건지 확인해야 함 
-							kill(game_act->tn_pid, SIGUSR2);
-							kill(game_act->tn_pid, SIGUSR1);
-							// 이거 하다가 갑자기 혼란 옴 굳이 이럴 필요 없지 않나 공유메모리 쓰는데 
-						}
-
 					}
+
 				}
+
+				else if (act == 2) {
+
+					printf("상대를 때립니다. 아야~");
+					strcat(act_string, "playerA attacked playerB\n");
+					act = 3;
+
+				}
+
+				else if (act == 3) {
+
+					game_state->current_turn = 1;
+
+					break;
+							
+				}
+
 			}
 
 		}
 	}
 	
 	
-*/
+
 	return 0;
 }
