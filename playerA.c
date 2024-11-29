@@ -35,12 +35,12 @@ typedef struct {
 	pid_t cy_pid; // 각 프로세스 pid
 	pid_t tn_pid;
 
-	char act_string[MAXCHAR]; // 행동 담아둘 배열 
+	char act_string[MAX_CHAR]; // 행동 담아둘 배열 
 
 	int cy_pass; // 패스했는지 확인
 	int tn_pass; 
 
-}GameAct;
+} GameAct;
 
 typedef struct //주사위
 {
@@ -127,8 +127,8 @@ void act_init(GameAct* game_act) {
 
 	game_act->act_string[0] = '\0';
 
-	cy_pass = 0;
-	tn_pass = 0;
+	game_act->cy_pass = 0;
+	game_act->tn_pass = 0;
 }
 
 void shield_effect(int *def, int *dmg)
@@ -191,7 +191,7 @@ int main()
 		exit(1);
 	}
 	game_act = (GameAct*)shmat(shmid_act, NULL, 0);
-
+/*
 	act_init(game_act);
 
 	// pid 저장 
@@ -298,6 +298,6 @@ int main()
 	}
 	
 	
-
+*/
 	return 0;
 }
