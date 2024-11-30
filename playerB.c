@@ -138,8 +138,11 @@ void play_turn(GameState *game_state, int player_id)
 
 }
 
-void change_turn(GameState* game_state) {
+void change_turn(GameState* game_state, GameAct* game_act) {
 	game_state->current_turn = 0;
+	game_act->round += 1;
+
+	printf("\nwaiting. . .\n");
 }
 
 int main()
@@ -195,6 +198,8 @@ int main()
 	{
 		if (game_state->current_turn == 1) {
 
+			printf("%s", game_act->act_string);
+
 			// 새 라운드 시작 
 			if (game_act->round == 1) {
 
@@ -227,11 +232,13 @@ int main()
 			close(fd[0]);
 
 			printf("흰 주사위: %d\n흑 주사위: %d\n", get_dice.white_dice, get_dice.black_dice);
+			printf("\n");
 			printf("-사용 가능한 서포트 카드\n");
 			for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
 			{
 				printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
 			}
+			printf("\n");
 
 			while (1) {
 
@@ -239,6 +246,7 @@ int main()
 				scanf("%d", &act);
 
 				if (act == 1) {
+					printf("\n");
 
 					printf("-사용 가능한 서포트 카드\n");
 
@@ -256,27 +264,38 @@ int main()
 
 					else {
 						// 이거 되는지 잘 모르겠음 
-						strcpy(act_string, "playerA used ");
+						strcpy(act_string, "[S] B ");
 						strcat(act_string, get_card[act - 1].name);
 						strcat(act_string, "\n");
-						strcat(game_act->act_string, act_string);
+						strcpy(game_act->act_string, act_string);
 						// 카드 효과 적용, 카드 삭제 써야 함 
+
+						printf("%s 카드를 사용했습니다.\n", get_card[act - 1].name);
+						
+						change_turn(game_state, game_act);
+
+						break;
 					}
 
 				}
 
 				else if (act == 2) {
 
-					printf("상대를 때립니다. 아야~");
-					strcat(act_string, "playerA attacked playerB\n");
-					act = 3;
+					printf("상대를 때립니다. 아야~\n");
+					strcpy(game_act->act_string, "[A] B->A\n");
+
+					change_turn(game_state, game_act);
+
+					break;
 
 				}
 
 				else if (act == 3) {
 
-					game_state->current_turn = 0;
-					game_act->round += 1;
+					printf("턴을 넘깁니다.\n");
+					strcpy(game_act->act_string, "[P] B->A\n");
+					
+					change_turn(game_state, game_act);
 
 					break;
 

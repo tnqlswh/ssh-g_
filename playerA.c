@@ -143,10 +143,8 @@ void play_turn(GameState *game_state, int player_id)
 
 void change_turn(GameState* game_state) {
 	game_state->current_turn = 1;
-}
 
-void pass_turn(GameAct* game_act) {
-	game_act->cy_pass = 1; 
+	printf("\nwaiting. . .\n");
 }
 
 int main()
@@ -206,6 +204,8 @@ int main()
 	while (1)
 	{
 		if (game_state->current_turn == 0) {
+			
+			printf("%s", game_act->act_string);
 			
 			// 새 라운드 시작 
 			if (game_act->round == 1) {
@@ -268,31 +268,38 @@ int main()
 
 					else {
 						// 이거 되는지 잘 모르겠음 
-						strcpy(act_string, "playerA used ");
+						strcpy(act_string, "[S] A ");
 						strcat(act_string, get_card[act - 1].name);
 						strcat(act_string, "\n");
-						strcat(game_act->act_string, act_string);
-								// 카드 효과 적용, 카드 삭제 써야 함 
+						strcpy(game_act->act_string, act_string);
+						// 카드 효과 적용, 카드 삭제 써야 함 
+
+						printf("%s 카드를 사용했습니다.\n", get_card[act - 1].name);
+						change_turn(game_state);
+						break;
 					}
 
 				}
 
 				else if (act == 2) {
 
-					printf("상대를 때립니다. 아야~");
-					strcat(act_string, "playerA attacked playerB\n");
-					act = 3;
+					printf("상대를 때립니다. 아야!\n");
+					strcpy(game_act->act_string, "[A] A->B\n");
+					
+					change_turn(game_state);
+					break;
 
 				}
 
 				else if (act == 3) {
 
-					game_state->current_turn = 1;
-
+					printf("턴을 넘깁니다.\n");
+					strcpy(game_act->act_string, "[P] A->B\n");
+					change_turn(game_state);
 					break;
 							
 				}
-
+				
 			}
 
 		}
