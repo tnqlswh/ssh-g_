@@ -9,6 +9,7 @@
 #include <sys/ipc.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
 #define MAX_DICE 6
 #define MAX_CARD 2
@@ -138,15 +139,23 @@ void play_turn(GameState *game_state, int player_id)
 
 }
 
-void change_turn(GameState* game_state, GameAct* game_act) {
-	game_state->current_turn = 0;
-	game_act->round += 1;
+GameState* game_state;
+GameAct* game_act;
 
-	printf("\nwaiting. . .\n\n");
+int turn = 0;
+
+void change_turn() {
+	
+	turn = 1;
+
 }
+
 
 int main()
 {
+
+	signal(SIGUSR1, change_turn);
+
 	int act = 0; // 플레이어 행동 입력 받기용 변수 
 	int card_size = 0; // 현재 카드 몇장인지 확인용 
 	char act_string[MAX_CHAR];
@@ -159,7 +168,7 @@ int main()
 
 	int shmid;
 	key_t key;
-	GameState *game_state;
+	//GameState *game_state;
 
 	key = ftok("cytn", 4272);
 	shmid = shmget(key, sizeof(GameState), 0666);
@@ -175,7 +184,7 @@ int main()
 
 	int shmid_act;
 	key_t key_act;
-	GameAct* game_act;
+	//GameAct* game_act;
 
 	key_act = ftok("tncy", 7242);
 	shmid_act = shmget(key_act, sizeof(GameAct), 0666);
@@ -187,18 +196,30 @@ int main()
 	game_act = (GameAct *)shmat(shmid_act, NULL, 0);
 
 	game_act->tn_pid = getpid();
+	printf("%d", game_act->cy_pid);
+	printf("%d %d", getpid(), game_act->tn_pid);
 
 	int fd[2];
 	pid_t cardDice;
 
 	pipe(fd);
-	//cardDice = fork();
+
+	int cy_pid;
+
+
+	printf("내 PID : %d\n", getpid());
+	printf("상대의 PID를 입력해주세요.\ninput: ");
+	scanf("%d", &cy_pid);
+
+	printf("양쪽 모두 입력이 끝났다면 아무 숫자나 입력해주세요.\ninput: ");
+	scanf("%d", &act);
 
 	printf("\nGAME START\n\n");
-	
+
+
 	while (1)
 	{
-		if (game_state->current_turn == 1) {
+		if (turn == 1) {
 
 			printf("%s\n", game_act->act_string);
 
@@ -274,7 +295,7 @@ int main()
 
 						printf("%s 카드를 사용했습니다.\n\n", get_card[act - 1].name);
 						
-						change_turn(game_state, game_act);
+						//change_turn(game_state, game_act);
 
 						break;
 					}
@@ -283,14 +304,29 @@ int main()
 
 				else if (act == 2) {
 
-					int dmg = 5;
+					printf("사용할 주사위를 선택하세요.\n1. 백\n2. 흑\ninput: ");
+					scanf("%d", &act);
 
-					printf("상대를 공격했습니다.\nDMG: %d\n\n", dmg);
-					strcpy(game_act->act_string, "[A] B->A\n");
+					if ((act == 1 && get_dice.white_dice > 0) || (act == 2 && get_dice.black_dice > 0)) {
 
-					change_turn(game_state, game_act);
+						if (act == 1) get_dice.white_dice -= 1;
+						else if (act == 2) get_dice.black_dice -= 1;
 
-					break;
+						int dmg = 5 + game_state->tighnari_dmg - game_state->cyno_def;
+
+						game_state->cyno_hp -= dmg;
+
+						printf("상대를 공격했습니다.\nDMG: %d\n\n", dmg);
+						strcpy(game_act->act_string, "[A] B->A\n");
+
+						//change_turn(game_state, game_act);
+						break;
+
+					}
+
+					else {
+						printf("주사위가 부족합니다.\n\n");
+					}
 
 				}
 
@@ -299,7 +335,7 @@ int main()
 					printf("턴을 넘깁니다.\n\n");
 					strcpy(game_act->act_string, "[P] B->A\n");
 					
-					change_turn(game_state, game_act);
+					//change_turn(game_state, game_act);
 
 					break;
 
@@ -307,10 +343,14 @@ int main()
 
 			}
 
+			printf("\nwaiting. . .\n\n");
+			kill(cy_pid, SIGUSR1);
+			pause();
+
 		}
 	}
 
-
+	
 
 	return 0;
 }
