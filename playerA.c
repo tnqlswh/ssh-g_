@@ -29,19 +29,6 @@ typedef struct //플레이어 상태
 
 } GameState;
 
-typedef struct {
-
-	int round; // 몇번째 턴인지 
-
-	pid_t cy_pid; // 각 프로세스 pid
-	pid_t tn_pid;
-
-	char act_string[MAX_CHAR]; // 행동 담아둘 배열 
-
-	int cy_pass; // 패스했는지 확인
-	int tn_pass; 
-
-} GameAct;
 
 typedef struct //주사위
 {
@@ -122,6 +109,7 @@ void state_init(GameState* game_state)
 
 }
 
+/*
 void act_init(GameAct* game_act) {
 	
 	game_act->round = 1;
@@ -131,7 +119,7 @@ void act_init(GameAct* game_act) {
 	game_act->cy_pass = 0;
 	game_act->tn_pass = 0;
 }
-
+*/
 void shield_effect(int* hp, int *def, int *dmg)
 {
 	*def += 5;
@@ -149,30 +137,29 @@ void heal_effect(int* hp, int* def, int* dmg)
 
 
 int turn = 0;
+int first_round = 1;
+int cy_pass = 0;
+int tn_pass = 0;
 
-void enemy_shield() {
+void enemy_card() {
 	turn = 0;
-	printf("\nB used shield!\n\n");
+	tn_pass = 0;
+	printf("\nB used card!\n\n");
 }
 
-void enemy_powerup() {
-	turn = 0;
-	printf("\nB used powerup!\n\n");
-}
-
-void enemy_heal() {
-	turn = 0;
-	printf("\nB used heal!\n\n");
-}
 
 void enemy_atk() {
 	turn = 0;
+	tn_pass = 0;
 	printf("\nB attacked A!\n\n");
 }
 
 void pass() {
 	turn = 0;
+	tn_pass = 1; 
+	printf("\nB passed turn!\n\n");
 }
+
 
 void skip() {
 	return; 
@@ -180,9 +167,7 @@ void skip() {
 
 int main()
 {	
-	signal(SIGFPE, enemy_shield);
-	signal(SIGTSTP, enemy_powerup);
-	signal(SIGALRM, enemy_heal);
+	signal(SIGCONT, enemy_card);
 	signal(SIGUSR1, enemy_atk);
 	signal(SIGUSR2, skip);
 
@@ -214,30 +199,7 @@ int main()
 	state_init(game_state);
 	temp_state = *game_state;
 
-	//printf("%d %d", game_state->cyno_dmg, game_state->tighnari_dmg);
 
-	// 새로 만든 공유 메모리 
-	int shmid_act;
-	key_t key_act;
-	GameAct* game_act;
-
-	key_act = ftok("tncy", 7242);
-	shmid_act = shmget(key_act, sizeof(GameAct), IPC_CREAT | 0666);
-	if (shmid_act == -1)
-	{
-		perror("shmget");
-		exit(1);
-	}
-	game_act = (GameAct*)shmat(shmid_act, NULL, 0);
-	act_init(game_act);
-	
-	// pid 저장 
-	//game_act->cy_pid = getpid();
-
-	int fd[2];
-	pid_t cardDice;
-
-	pipe(fd);
 
 	int tn_pid;
 	
@@ -253,6 +215,8 @@ int main()
 	signal(SIGUSR2, pass);
 
 	int start = 0;
+	SupportCard get_card[MAX_CARD];
+	Dice get_dice;
 
 	while (1)
 	{
@@ -260,13 +224,23 @@ int main()
 
 			if (start != 0) {
 				temp_state = *game_state;
-				start = 1;
 			}
-			
-			
-			// 새 라운드 시작 
-			if (game_act->round == 1) {
+			start = 1;
+			cy_pass = 0;
 
+			printf("A hp : %d\n", temp_state.cyno_hp);
+			printf("A def : %d\n", temp_state.cyno_def);
+			printf("A dmg : %d\n\n", temp_state.cyno_dmg);
+			printf("B hp : %d\n", temp_state.tighnari_hp);
+			printf("B def : %d\n", temp_state.tighnari_def);
+			printf("B dmg : %d\n\n", temp_state.tighnari_dmg);
+
+			// 새 라운드 시작 
+			if (first_round == 1) {
+				int fd[2];
+				pid_t cardDice;
+
+				pipe(fd);
 				card_size = MAX_CARD;
 				cardDice = fork();
 				// 자식 프로세스 
@@ -282,22 +256,21 @@ int main()
 					close(fd[1]);
 					exit(1);
 				}
-			}
-			
-			// 부모 프로세스 
-			
-			close(fd[1]);
 
-			SupportCard get_card[MAX_CARD];
-			Dice get_dice;
+				else {
+					close(fd[1]);
 
-			read(fd[0], &get_dice, sizeof(get_dice));
-			read(fd[0], &get_card, sizeof(get_card));
-			close(fd[0]);
+					read(fd[0], &get_dice, sizeof(get_dice));
+					read(fd[0], &get_card, sizeof(get_card));
+					close(fd[0]);
+
+				}
+			}	
+
 
 			printf("백 주사위: %d\n흑 주사위: %d\n\n", get_dice.white_dice, get_dice.black_dice);
 			printf("-사용 가능한 서포트 카드\n");
-			for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
+			for (int i = 0; i < card_size; i++)
 			{
 				printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
 			}
@@ -313,7 +286,7 @@ int main()
 
 					printf("-사용 가능한 서포트 카드\n");
 
-					for (int i = 0; i < sizeof(get_card) / sizeof(get_card[0]); i++)
+					for (int i = 0; i < card_size; i++)
 					{
 						printf("%d. %s\n소모 주사위\n-흑: %d\n-백: %d\n", i + 1, get_card[i].name, get_card[i].black_cost, get_card[i].white_cost);
 
@@ -329,12 +302,18 @@ int main()
 						
 						get_dice.white_dice -= get_card[act - 1].white_cost;
 						get_dice.black_dice -= get_card[act - 1].black_cost;
-
+						
+						get_card->effect(&temp_state.cyno_hp, &temp_state.cyno_def, &temp_state.cyno_dmg);
 						printf("%s 카드를 사용했습니다.\n\n", get_card[act - 1].name);
 
-						if (get_card[act - 1].white_cost == 0) signo = SIGFPE;
-						else if (get_card[act - 1].white_cost == 1) signo = SIGTSTP;
-						else if (get_card[act - 1].white_cost == 3) signo = SIGALRM;
+						if (act == 1) 
+							get_card[act - 1] = get_card[act];
+
+
+						card_size -= 1;
+
+						*game_state = temp_state;
+						signo = SIGCONT;
 
 						break;
 					}
@@ -351,7 +330,7 @@ int main()
 						if (act == 1) get_dice.white_dice -= 1;
 						else if (act == 2) get_dice.black_dice -= 1;
 
-						int dmg = 5 + temp_state.cyno_dmg - temp_state.tighnari_def;
+						int dmg = 10 + temp_state.cyno_dmg - temp_state.tighnari_def;
 						
 						temp_state.tighnari_hp -= dmg;
 
@@ -372,6 +351,8 @@ int main()
 				else if (act == 3) {
 
 					printf("턴을 넘깁니다.\n\n");
+					
+					cy_pass = 1;
 					signo = SIGUSR2;
 					break;
 							
@@ -379,9 +360,30 @@ int main()
 				
 			}
 
+			if (cy_pass == 1 && tn_pass == 1) {
+				printf("\nNEW ROUND!\n\n");
+				first_round = 1;
+				kill(tn_pid, SIGUSR2);
+				pause();
+				continue;
+			}
+			
+			if (temp_state.tighnari_hp <= 0) {
+				printf("\nYOU WIN!\n\n");
+				kill(tn_pid, SIGUSR1);
+				exit(1);
+			}
+
+			first_round += 1;
+
 			printf("\nwaiting. . .\n\n");
 			kill(tn_pid, signo);
 			pause();
+			
+			if (game_state->cyno_hp <= 0) {
+				printf("\nYOU LOSE . . . \n\n");
+				exit(1);
+			}
 			
 
 		}
