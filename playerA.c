@@ -303,7 +303,7 @@ int main()
 						get_dice.white_dice -= get_card[act - 1].white_cost;
 						get_dice.black_dice -= get_card[act - 1].black_cost;
 						
-						get_card->effect(&temp_state.cyno_hp, &temp_state.cyno_def, &temp_state.cyno_dmg);
+						get_card[act - 1].effect(&temp_state.cyno_hp, &temp_state.cyno_def, &temp_state.cyno_dmg);
 						printf("%s 카드를 사용했습니다.\n\n", get_card[act - 1].name);
 
 						if (act == 1) 
